@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" href="/css/student.css" />
+
+  <script type="module" src="/Firebase/firebase_config.js"></script>
+  <script type="module" src="/Firebase/auth.js"></script>
+
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <header class="navbar">
+      <div class="brand">🏫 Outpass Portal</div>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <button id="logoutBtn" class="btn logout-btn" style="background:#6b7280;">Logout</button>
+      </nav>
+    </header>
+
+    <main style="margin-top:18px;">
+      <div style="display:grid;grid-template-columns:1fr 360px;gap:18px">
+        <section class="card">
+          <h2>Apply for Outpass</h2>
+          <p style="color:var(--muted)">Fill details below and submit your request.</p>
+
+          <form class="form" id="outpassForm">
+            <label>Reason</label>
+            <input name="reason" type="text" placeholder="Home visit / Medical / Personal" required>
+
+            <label>Destination</label>
+            <input name="destination" type="text" placeholder="Home address / City" required>
+
+            <label>From</label>
+            <input name="from_date" type="date" required>
+
+            <label>To</label>
+            <input name="to_date" type="date" required>
+
+            <label>Additional notes (optional)</label>
+            <textarea name="notes" rows="3" placeholder="Any other details"></textarea>
+
+            <button class="btn" type="submit">Submit Request</button>
+          </form>
+        </section>
+
+        <aside class="card">
+          <h3>Your Recent Outpasses</h3>
+          <table class="table" id="recentOutpasses">
+            <thead>
+              <tr><th>ID</th><th>Reason</th><th>From</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>#12</td><td>Home Visit</td><td>2025-10-20</td><td><span class="status approved">APPROVED</span></td></tr>
+              <tr><td>#07</td><td>Medical</td><td>2025-09-02</td><td><span class="status rejected">REJECTED</span></td></tr>
+              <tr><td>#03</td><td>Personal</td><td>2025-08-18</td><td><span class="status pending">PENDING</span></td></tr>
+            </tbody>
+          </table>
+
+          <div style="margin-top:12px;">
+            <a class="btn" href="verify.html">View QR / Verification</a>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="footer">© 2025 College Outpass System</footer>
+  </div>
+
+  <!-- Auth + Logout -->
+  <script>
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // Check login state
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        window.location.href = "student_login.html";
+        return;
+      }
+
+      try {
+        const docRef = db.collection("users").doc(user.uid);
+        const docSnap = await docRef.get();
+
+        if (!docSnap.exists) {
+          alert("User record not found!");
+          await auth.signOut();
+          return;
+        }
+
+        const userData = docSnap.data();
+
+        if (userData.role !== "student") {
+          alert("Access denied! Only students can access this page.");
+          await auth.signOut();
+          return;
+        }
+
+        console.log("Student logged in:", userData.name);
+
+      } catch (error) {
+        console.error("Error verifying user:", error);
+        alert("An error occurred. Please try again.");
+        await auth.signOut();
+      }
+    });
+
+    // Logout
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      try {
+        await auth.signOut();
+        sessionStorage.clear();
+        window.location.href = "student_login.html";
+      } catch (error) {
+        console.error("Logout failed:", error);
+      }
+    });
+
+    // Handle outpass form submission (basic frontend handling)
+    document.getElementById("outpassForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const reason = e.target.reason.value;
+      const destination = e.target.destination.value;
+      const fromDate = e.target.from_date.value;
+      const toDate = e.target.to_date.value;
+      const notes = e.target.notes.value;
+
+      try {
+        await db.collection("outpasses").add({
+          userId: user.uid,
+          reason,
+          destination,
+          fromDate,
+          toDate,
+          notes,
+          status: "pending",
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        alert("Outpass request submitted successfully!");
+        e.target.reset();
+      } catch (error) {
+        console.error("Error submitting outpass:", error);
+        alert("Failed to submit outpass request.");
+      }
+    });
+  </script>
+</body>
+</html>
