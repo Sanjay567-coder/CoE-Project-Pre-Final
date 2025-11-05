@@ -5,7 +5,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebas
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDuod_FntPHop86YVkZ6q_8HLRTDZCtg3U",
+  apiKey: "Your Api Key",
   authDomain: "online-outpass.firebaseapp.com",
   projectId: "online-outpass",
   storageBucket: "online-outpass.firebasestorage.app",
@@ -14,4 +14,5 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
+
 export const app = initializeApp(firebaseConfig);
